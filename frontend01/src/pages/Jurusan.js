@@ -3,6 +3,12 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+
+const token = localStorage.getItem('token');
+axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+
+
 function Jurusan(){
     const [jrs, setJrsn] = useState([]);
     // const url = "http://localhost:3000/static/";
@@ -11,9 +17,18 @@ function Jurusan(){
         fectData();
     }, []);
     const fectData = async () => {
-        const response1 = await axios.get('http://localhost:3000/api/jurusan');
+
+        try {
+            const headers = {
+              Authorization: `Bearer ${token}`,
+            };
+
+        const response1 = await axios.get('http://localhost:3000/api/jurusan', {headers});
         const data1 = await response1.data.data;
         setJrsn(data1);
+    } catch (error) {
+        console.error('Gagal mengambil data:', error);
+      }
     }
 
     const [show, setShow] = useState(false);
@@ -39,6 +54,7 @@ function Jurusan(){
                 const response = await axios.post('http://localhost:3000/api/jurusan/store', formData, {
                     headers: {
                     'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${token}`,
                     },
                 });
             
@@ -91,6 +107,7 @@ function Jurusan(){
         await axios.patch(`http://localhost:3000/api/jurusan/update/${editData.id_j}`, formData, {
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
         });
         navigate('/jrs');
@@ -104,12 +121,17 @@ function Jurusan(){
     
     const handleDelete = (id) => {
         axios
-        .delete(`http://localhost:3000/api/jurusan/delete/${id}`)
+        .delete(`http://localhost:3000/api/jurusan/delete/${id}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+              }
+        })
+        
         .then((response) => {
             console.log('Data berhasil dihapus');
             //Hapus item dari array data jrs
             const updatedjrs = jrs.filter((item) => item.id_j !== id);
-            setJrsn(updatedjrs); // perbarui state dengan data yang sudah diperbarui
+            setJrsn(updatedjrs); 
         })
         .catch((error) => {
             console.error('Gagal menghapus data:', error);

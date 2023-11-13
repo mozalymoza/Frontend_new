@@ -2,24 +2,33 @@ import { Container, Row, Col, Button, Modal } from "react-bootstrap";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
+const token = localStorage.getItem('token');
+
 function Mahasiswa() {
 
 const [mhs, setMhs] = useState([]);
-const [jrs, setJrs] = useState([]);
+const [jrs, setJrsn] = useState([]);
 
 const url = "http://localhost:3000/static/";
 useEffect(() => {
     fetchData();
 }, []);
 const fetchData = async () =>{
-    const response1 = await axios.get('http://localhost:3000/api/mhs');
+    try {
+        const headers = {
+            Authorization: `Bearer ${token}`,
+        };
+    const response1 = await axios.get('http://localhost:3000/api/mhs',{headers});
     const data1 = await response1.data.data;
     setMhs(data1);
 
-    const response2 = await axios.get('http://localhost:3000/api/jurusan');
+    const response2 = await axios.get('http://localhost:3000/api/jurusan',{headers});
     const data2 = await response2.data.data;
-    setJrs(data2);
-}
+    setJrsn(data2);
+    } catch (error) {
+        console.error('Gagal mengambil data :', error);
+    }
+};
 
     const [show, setShow] = useState(false);
     const handleClose = () => setShow(false);
@@ -65,6 +74,7 @@ const fetchData = async () =>{
             await axios.post('http://localhost:3000/api/mhs/store', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${token}`,
                 },
             });
             navigate('/mhs');
@@ -75,82 +85,83 @@ const fetchData = async () =>{
         }
     };
 
+    const [editData, setEditData] = useState({
+        id_m:null,
+        nama: '',
+        nrp: '',
+        id_jurusan:''
+    });
 
-   // Start Edit
-const [editData, setEditData] = useState ({
-    id: null,
-    nama: '',
-    nrp: '',
-    id_jurusan: null
-});
-
-const [showEditModal, setShowEditModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     const handleShowEditModal = (data) => {
-    setEditData(data); // Atur data yang akan diedit 
-    setShowEditModal (true); // Buka modal pengeditan
-    setShow(false); // Pastikan modal tambah data ditutup saat membuka modal pengeditan
+        setEditData(data);
+        setShowEditModal(true);
+        setShow(false);
     };
 
     const handleCloseEditModal = () => {
-    setShowEditModal(false); // Menutup Modal Edit
-    setEditData(null); // Mereset Value Input Modal 
-    };
-    const handleEditDataChange = (field, value) => {
-    setEditData((prevData) => ({
-    ...prevData,
-    [field]: value
-    }));
-    };
-
-const handleUpdate = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-
-    formData.append('id', editData.id);
-    formData.append('nama', editData.nama);
-    formData.append('nrp', editData.nrp);
-    formData.append('id_jurusan', editData.id_jurusan);
-
-    if (editData.gambar) {
-        formData.append('gambar', editData.gambar);
-    }
-
-    if (editData.swa_foto) {
-        formData.append('swa_foto', editData.swa_foto);
-    }
-
-    try {
-        await axios.patch(`http://localhost:3000/api/mhs/update/${editData.id}`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-        navigate('/mhs');
-        fetchData();
         setShowEditModal(false);
-    } catch (error) {
-        console.error('Kesalahan', error);
-        setValidation(error.response.data);
-    }
-};
+        setEditData(null);
+    };
 
-    const handleDelete = (id) => {
+    const handleEditDataChange = (field, value) => {
+        setEditData((prevData) => ({
+            ...prevData,
+            [field]: value,
+        }));
+    };
+
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+
+        formData.append('id_m', editData.id_m);
+        formData.append('nama', editData.nama);
+        formData.append('nrp', editData.nrp);
+        formData.append('id_jurusan', editData.id_jurusan);
+
+        if (editData.gambar){
+            formData.append('gambar', editData.gambar);
+        }
+        if (editData.swa_foto){
+            formData.append('swa_foto', editData.swa_foto);
+        }
+
+        try {
+            await axios.patch(`http://localhost:3000/api/mhs/update/${editData.id_m}`, formData,{
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+            navigate('/mhs');
+            fetchData();
+            setShowEditModal(false);
+        } catch (error) {
+            console.error('Kesalahan:', error);
+            setValidation(error.response.data);
+        }
+    };
+
+    const handleDelete = (id_m) => {
         axios
-        .delete(`http://localhost:3000/api/mhs/delete/${id}`)
-        .then((response) =>{
-            console.log('Data Berhasil Dihapus');
-            //hapus item dari Array
-            const updateMhs = mhs.filter((item) => item.id !== id);
-            setMhs(updateMhs); //perbarui statte dengan data yang telah diperbarui
+        .delete(`http://localhost:3000/api/mhs/delete/${id_m}`,{
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
         })
-        .catch((error) =>{
-            console.error('gagal menghapus data: ', error);
-            alert('Gagal menghapus data. silahkan coba lagi hubungi admin');
+        .then((response) => {
+            console.log('Data berhasil dihapus');
+            const updateMhs = mhs.filter((item)=> item.id_m !== id_m);
+            setMhs(updateMhs);
+        })
+        .catch((error) => {
+            console.error('Gagal menghapus data:', error);
+            alert('Gagal menghapus data. Silahkan coba lagi atau hubungi administrator.');
         });
-        };
+    };
 
-    
     return(
         <Container>
             <Row>
@@ -167,12 +178,12 @@ const handleUpdate = async (e) => {
                         <th scope="col">Jurusan</th>
                         <th scope="col">gambar</th>
                         <th scope="col">swa_foto</th>
-                        <th scope="col">ACTION</th>
+                        <th scope="col" colSpan={2}>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     { mhs.map((mh, index) => (
-                        <tr key={(mh.id_m)}>
+                        <tr>
                             <td>{index + 1}</td>
                             <td>{mh.nama}</td>
                             <td>{mh.nrp}</td>
@@ -184,13 +195,16 @@ const handleUpdate = async (e) => {
                                     Edit 
                                 </button>
                             </td>
-                            <td> <button onClick={() => handleDelete(mh.id)} className='btn btn-sm btn-danger' >Hapus</button></td>
+                            <td>
+                                <button onClick={() => handleDelete(mh.id_m)} className='btn btn-sm btn-danger' >
+                                    Hapus
+                                </button>
+                            </td>
                         </tr>
                     ))}
                 </tbody>
                 </table>
             </Row>
-
             <Modal show={show} onHide={handleClose} >
                 <Modal.Header closeButton>
                     <Modal.Title>Tambah Data</Modal.Title>
@@ -220,80 +234,76 @@ const handleUpdate = async (e) => {
                             <input type="file" className="form-control" accept="image/*" onChange={handleGambarChange} />
                         </div>
                         <div className="mb-3">
-                            <label className="form-label">NRP:</label>
+                            <label className="form-label">Swa foto:</label>
                             <input type="file" className="form-control" accept="image/*" onChange={handleSwaFotoChange} />
                         </div>
                         <button onClick={handleClose} type="submit" className="btn btn-primary">Kirim</button>
                     </form>
                 </Modal.Body>
             </Modal>
-
             <Modal show={showEditModal} onHide={handleCloseEditModal}>
-              <Modal.Header closeButton>
+                <Modal.Header closeButton>
                 <Modal.Title>Edit Data</Modal.Title>
-              </Modal.Header>
-              <Modal.Body>
+                </Modal.Header>
+                <Modal.Body>
                 <form onSubmit={handleUpdate}>
-                  <div className="mb-3">
-                    <label className="form-label">Nama:</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={editData ? editData.nama : ''}
-                      onChange={(e) => handleEditDataChange('nama', e.target.value)}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">NRP:</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={editData ? editData.nrp : ''}
-                      onChange={(e) => handleEditDataChange('nrp', e.target.value)}
-                      />
+                    <div className="mb-3">
+                        <label className="form-label">Nama:</label>
+                        <input
+                        type="text"
+                        className="form-control"
+                        value={editData ? editData.nama : ''}
+                        onChange={(e) => handleEditDataChange('nama', e.target.value)}
+                        />
                     </div>
                     <div className="mb-3">
-                      <label className="form-label">Jurusan:</label>
-                      <select
+                        <label className="form-label">NRP:</label>
+                        <input
+                        type="text"
+                        className="form-control"
+                        value={editData ? editData.nrp : ''}
+                        onChange={(e) => handleEditDataChange('nrp', e.target.value)}
+                        />
+                    </div>
+                    <div className="mb-3">
+                        <label className="form-label">Jurusan:</label>
+                        <select
                         className="form-select"
                         value={editData ? editData.id_jurusan : ''}
                         onChange={(e) => handleEditDataChange('id_jurusan', e.target.value)}
-                      >
-                    <option key={editData.id_jurusan} value={editData.id_jurusan}>{editData.jurusan}</option>
+                        >
                         {jrs.map((jr) => (
-                          <option key={jr.id_j} value={jr.id_j}>
+                            <option key={jr.id_j} value={jr.id_j}>
                             {jr.nama_jurusan}
-                          </option>
+                            </option>
                         ))}
-                      </select>
+                        </select>
                     </div>
                     <div className="mb-3">
-                      <label className="form-label">Gambar:</label>
-                      <input
+                        <label className="form-label">Gambar:</label>
+                        <input
                         type="file"
                         className="form-control"
                         accept="image/*"
                         onChange={(e) => handleEditDataChange('gambar', e.target.files[0])}
-                      />
+                        />
                     </div>
                     <div className="mb-3">
-                      <label className="form-label">Swa Foto:</label>
-                      <input
+                    <label className="form-label">Swa Foto:</label>
+                        <input
                         type="file"
                         className="form-control"
-                        // value={editData ? editData.swa_foto : ''}
+                      // value={editData ? editData.swa_foto : ''}
                         accept="image/*"
                         onChange={(e) => handleEditDataChange('swa_foto', e.target.files[0])}
-                      />
+                        />
                     </div>
                     <button type="submit" className="btn btn-primary">
-                      Simpan Perubahan
+                        Simpan Perubahan
                     </button>
                     </form>
-              </Modal.Body>
+                </Modal.Body>
             </Modal>
-  
-
         </Container>
     )
 }
